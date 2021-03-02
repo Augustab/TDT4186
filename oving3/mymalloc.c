@@ -45,9 +45,30 @@ void *mymalloc(long numbytes) {
   if (has_initialized == 0) {
      mymalloc_init();
   }
+  long size = free_list_start->size;
+  struct mem_control_block *block_to_replace = free_list_start;
+  struct mem_control_block *prev_block = free_list_start;
+  printf("next free %p og prev free %p \n", block_to_replace, prev_block);
 
-  /* add your code here! */
+  while (size < numbytes + sizeof(struct mem_control_block)){
+    prev_block = block_to_replace;
+    block_to_replace = block_to_replace->next;
+    size = block_to_replace->size;
+    printf("Inne i while prev %p og next %p \n", prev_block, block_to_replace);
+  }
 
+  if (prev_block->next == (struct mem_control_block *)0){
+    printf("Prev free list next er  %p \n", prev_block->next);
+    prev_block->next = prev_block + numbytes;
+  }
+  else{
+    printf("Prev free list next er  %p \n", prev_block->next);
+    prev_block->next += numbytes;
+  }
+
+  struct mem_control_block *new = (struct mem_control_block *) prev_block->next;
+  new->size = block_to_replace->size-numbytes;
+  new->next = (struct mem_control_block*)block_to_replace->next;
 }
 
 void myfree(void *firstbyte) {
@@ -57,7 +78,7 @@ void myfree(void *firstbyte) {
 }
 
 int main(int argc, char **argv) {
-
-  /* add your test cases here! */
-
-}
+    mymalloc(1);
+    mymalloc(1);
+    mymalloc(3);
+  }
