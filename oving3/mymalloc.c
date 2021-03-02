@@ -39,50 +39,78 @@ void mymalloc_init() {
 
   // We're initialized and ready to go
   has_initialized = 1;
+  printf("Free list start: %p\n", free_list_start);
 }
 
 void *mymalloc(long numbytes) {
-  if (has_initialized == 0) {
-     mymalloc_init();
-  }
-  long size = free_list_start->size;
-  struct mem_control_block *block_to_replace = free_list_start;
-  struct mem_control_block *prev_block = free_list_start;
+    if (has_initialized == 0) {
+        mymalloc_init();
+    }
+    /* add your code here! */
 
-  while (size < numbytes + sizeof(struct mem_control_block)){
-    prev_block = block_to_replace;
-    block_to_replace = block_to_replace->next;
-    size = block_to_replace->size;
-    printf("Inne i while prev %p og next %p \n", prev_block, block_to_replace);
-  }
+    int free_block_size = free_list_start->size;
+    struct mem_control_block *block_to_fill = free_list_start;
+    struct mem_control_block *prev_block = free_list_start; // Last free block too small to hold numbytes
 
-  if (prev_block->next == (struct mem_control_block *)0){
-    printf("Prev free list next er  %p \n", prev_block->next);
+    // Set block_to_fill to address to be filled
+    while (free_block_size < numbytes + sizeof(struct mem_control_block)){
+        // Exit loop if there is no space and we are at the last free block
+        if (block_to_fill->next == (struct mem_control_block *)0){
+            return (void *)0;
+        }
+        prev_block = block_to_fill;
+        block_to_fill = block_to_fill->next;
+        free_block_size = block_to_fill->size;
+        printf("Inne i while prev %p og next %p \n", prev_block, block_to_fill);
+    }
+    
+    // New address of next free block
     void *p = (void *)prev_block;
-    printf("p %p \n", p);
-    prev_block->next = p + numbytes + (8-numbytes%8);
-    printf("Prev block %p \n", prev_block->next);
-  }
-  else{
-    void *p = (void *)prev_block;
-    printf("p %p \n", p);
-    prev_block->next = p + numbytes + (8-numbytes%8);
-    printf("Prev free list next er  %p \n", prev_block->next);
-  }
+    int allocated_bytes = sizeof(struct mem_control_block) + numbytes + (8-(sizeof(struct mem_control_block) + numbytes)%8);
+    void *new_free_address = p + allocated_bytes;
+    
+    if (block_to_fill == free_list_start) {
+        free_list_start = new_free_address; // New address 
+        printf("Inserting into first free space. Free list start is now: %p\n",  free_list_start);
+    }
+    else {
+        prev_block->next = new_free_address;
+        printf("Not inserting into first free space. It was too small.\n");
+    }
 
-  struct mem_control_block *new = (struct mem_control_block *) prev_block->next;
-  new->size = block_to_replace->size-numbytes;
-  new->next = (struct mem_control_block*)block_to_replace->next;
+    // New mem_control_block for the free space left in the filled free block
+    struct mem_control_block *new_free_block = (struct mem_control_block *)new_free_address;
+    new_free_block->size = block_to_fill->size - allocated_bytes;
+    new_free_block->next = block_to_fill->next;
+    printf("New free block size: %d, next%p\n", new_free_block->size, new_free_block->next);
+
+    // Update block_to_fill now that it is metadata to allocated memory
+    block_to_fill->size = numbytes;
+    block_to_fill->next = (struct mem_control_block *)0;
+
+    return block_to_fill;
 }
 
 void myfree(void *firstbyte) {
 
-  /* add your code here! */
+    /* add your code here! */
 
 }
 
 int main(int argc, char **argv) {
-    mymalloc(3);
-    mymalloc(5);
 
-  }
+    /* add your test cases here! */
+    struct mem_control_block *a = mymalloc(3);
+    struct mem_control_block *b = mymalloc(5);
+    struct mem_control_block *c = mymalloc(9);
+    struct mem_control_block *d = mymalloc(65500);
+    printf("a:%p, b:%p, c:%p\n", a, b, c);
+    printf("Not space:  %p\n", d);
+    printf("Iterating through list of free blocks:\n");
+    struct mem_control_block *n = free_list_start;
+    do {
+        printf("Block addr: %p, size: %d, next block addr: %p \n", n, n->size, n->next);
+        struct mem_control_block *temp = n->next;
+        n->next = temp;
+    } while(n->next != (struct mem_control_block *)0);
+}
