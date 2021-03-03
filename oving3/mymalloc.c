@@ -115,13 +115,19 @@ void myfree(void *firstbyte) {
     
     // Combine blocks
     // freed block and after
-    if (block_to_free + block_to_free->size + sizeof(struct mem_control_block) == free_after) {
+    printf("FREED BLOCK AND AFTER \n");
+    printf("bock to free er nå %p og block to free er %d \n", block_to_free, block_to_free->size);
+    printf("Free after %p og det på vs %p \n", free_after, block_to_free + block_to_free->size + sizeof(struct mem_control_block));
+    if ((void *)block_to_free + block_to_free->size + sizeof(struct mem_control_block) == (void *)free_after) {
         printf("Combining freed block with block after");
         block_to_free->next = free_after->next;
         block_to_free->size = block_to_free->size + sizeof(struct mem_control_block) + free_after->size;
     }
     // Before and freed block
-    if (free_before + free_before->size + sizeof(struct mem_control_block) == block_to_free) {
+    printf("BEFORE AND FREED BLOCK \n");
+    printf("free_befor er nå %p og free_before_size er %d \n", free_before, free_before->size);
+    printf("Block to free %p og det på vs %p \n", block_to_free, free_before + free_before->size + sizeof(struct mem_control_block));
+    if ((void *)free_before + free_before->size + sizeof(struct mem_control_block) == (void *)block_to_free) {
         printf("Combining freed block with block before");
         free_before->next = block_to_free->next;
         free_before->size = free_before->size + sizeof(struct mem_control_block) + block_to_free->size;
@@ -135,13 +141,16 @@ int main(int argc, char **argv) {
     struct mem_control_block *a = mymalloc(5);
     struct mem_control_block *b = mymalloc(15);
     struct mem_control_block *c = mymalloc(30);
-    struct mem_control_block *d = mymalloc(65500);
-    printf("a:%p, b:%p, c:%p\n", a, b, c);
+    struct mem_control_block *d = mymalloc(40);
+    struct mem_control_block *e = mymalloc(69);
+    printf("a:%p, b:%p, c:%p, d:%p, e:%p\n", a, b, c, d, e);
     printf("Not space:  %p\n", d);
 
     myfree(b);
-    struct mem_control_block *e = mymalloc(20);
-    printf("e: %p\n", e);
+    struct mem_control_block *s = mymalloc(420);
+    myfree(d);
+    printf("B ER DONEE \n\n\n");
+    myfree(c);
 
 
     printf("Iterating through list of free blocks:\n");
