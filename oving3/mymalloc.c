@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <assert.h>
 
 int has_initialized = 0;
 
@@ -39,7 +40,7 @@ void mymalloc_init() {
 
   // We're initialized and ready to go
   has_initialized = 1;
-  printf("Free list start: %p\n", free_list_start);
+  printf("FOR DEBUG: Free list start: %p\n", free_list_start);
 }
 
 void *mymalloc(long numbytes) {
@@ -61,7 +62,6 @@ void *mymalloc(long numbytes) {
         prev_block = block_to_fill;
         block_to_fill = block_to_fill->next;
         free_block_size = block_to_fill->size;
-        printf("Inne i while prev %p og next %p \n", prev_block, block_to_fill);
     }
     // Update numbytes so all allocated and free addresses will be multiples of 8
     numbytes = numbytes + (8-(sizeof(struct mem_control_block) + numbytes)%8)%8;
@@ -70,25 +70,23 @@ void *mymalloc(long numbytes) {
     int allocated_bytes = sizeof(struct mem_control_block) + numbytes;
     void *new_free_address = p + allocated_bytes;
     
+    struct mem_control_block *new_free_block;
     if (block_to_fill == free_list_start) {
         free_list_start = new_free_address; // New address 
-        printf("Inserting into first free space. Free list start is now: %p\n",  free_list_start);
+        // New mem_control_block for the free space left in the filled free block
+        new_free_block = (struct mem_control_block *)new_free_address;
     }
     else {
-        prev_block->next = new_free_address;
-        printf("Not inserting into first free space. It was too small.\n");
+        // prev_block->next = new_free_address;
+        prev_block->next = (void *)prev_block->next + allocated_bytes;
+        // New mem_control_block for the free space left in the filled free block
+        new_free_block = (struct mem_control_block *)prev_block->next;
     }
-
-    // New mem_control_block for the free space left in the filled free block
-    struct mem_control_block *new_free_block = (struct mem_control_block *)new_free_address;
     new_free_block->size = block_to_fill->size - allocated_bytes;
     new_free_block->next = block_to_fill->next;
-    printf("New free block size: %d, next%p\n", new_free_block->size, new_free_block->next);
-
     // Update block_to_fill now that it is metadata to allocated memory
     block_to_fill->size = numbytes;
     block_to_fill->next = (struct mem_control_block *)0;
-
     return block_to_fill;
 }
 
@@ -115,20 +113,12 @@ void myfree(void *firstbyte) {
     
     // Combine blocks
     // freed block and after
-    printf("FREED BLOCK AND AFTER \n");
-    printf("bock to free er nå %p og block to free er %d \n", block_to_free, block_to_free->size);
-    printf("Free after %p og det på vs %p \n", free_after, block_to_free + block_to_free->size + sizeof(struct mem_control_block));
     if ((void *)block_to_free + block_to_free->size + sizeof(struct mem_control_block) == (void *)free_after) {
-        printf("Combining freed block with block after");
         block_to_free->next = free_after->next;
         block_to_free->size = block_to_free->size + sizeof(struct mem_control_block) + free_after->size;
     }
     // Before and freed block
-    printf("BEFORE AND FREED BLOCK \n");
-    printf("free_befor er nå %p og free_before_size er %d \n", free_before, free_before->size);
-    printf("Block to free %p og det på vs %p \n", block_to_free, free_before + free_before->size + sizeof(struct mem_control_block));
     if ((void *)free_before + free_before->size + sizeof(struct mem_control_block) == (void *)block_to_free) {
-        printf("Combining freed block with block before");
         free_before->next = block_to_free->next;
         free_before->size = free_before->size + sizeof(struct mem_control_block) + block_to_free->size;
     }
@@ -138,22 +128,83 @@ void myfree(void *firstbyte) {
 int main(int argc, char **argv) {
 
     /* add your test cases here! */
+    
     struct mem_control_block *a = mymalloc(5);
     struct mem_control_block *b = mymalloc(15);
     struct mem_control_block *c = mymalloc(30);
     struct mem_control_block *d = mymalloc(40);
     struct mem_control_block *e = mymalloc(69);
-    printf("a:%p, b:%p, c:%p, d:%p, e:%p\n", a, b, c, d, e);
-    printf("Not space:  %p\n", d);
 
+
+    printf("\nFIRST TEST: MANUALLY CHECK THAT ALL ALLOCATED BLOCKS ARE AT CORRECT ADDRESS\n");
+    printf("\tBlock addr a: %p Size: %d\n", a, a->size);
+    printf("\tBlock addr b: %p Size: %d\n", b, b->size);
+    printf("\tBlock addr c: %p Size: %d\n", c, c->size);
+    printf("\tBlock addr d: %p Size: %d\n", d, d->size);
+    printf("\tBlock addr e: %p Size: %d\n", e, e->size);
+    
+    //Some tests to check that addresses are correct
+    //We check that next adress equals the last adress plus its size and the size of a mem control block.
+    assert((void *)a + a->size + sizeof(struct mem_control_block)==b);
+    assert((void *)b + b->size + sizeof(struct mem_control_block)==c);
+    assert((void *)c + c->size + sizeof(struct mem_control_block)==d);
+    assert((void *)d + d->size + sizeof(struct mem_control_block)==e);
+    printf("WEE SEE THAT ADDRESS DIFFERENCE IS CORRECT WITH RESPECT TO BLOCK SIZE. EACH META DATA BLOCK ADDS 16 BYTES\n");
+    printf("ASSERT TESTS ALSO SUCCESFUL\n\n");
+
+
+    printf("SECOND TEST: MANUALLY CHECK THAT FREE BLOCKS LIST START AT FIRST FREE BLOCK (ONE FREE BLOCK)\n");
+    //We check that the free block list starts behind the last allocated block e.
+    printf("\tFirst free Block addr: %p Size: %d\n",free_list_start, free_list_start->size);
+    assert((void *)e + e->size + sizeof(struct mem_control_block)==free_list_start);
+    printf("WEE SEE THAT ADDRESS OF FREE LIST START IS CORRECT\n");
+    printf("ASSERT TESTS ALSO SUCCESFUL\n\n");
+
+
+    //Freeing two blocks 
     myfree(b);
-    struct mem_control_block *s = mymalloc(420);
     myfree(d);
-    printf("B ER DONEE \n\n\n");
+
+    printf("THIRD TEST: TWO BLOCKS FREED - CHECK THAT FREED BLOCKS ARE ADDED TO FREE LIST AT CORRECT ADDRESSES AND CORRECT SIZE\n");
+    //We check that both the size and the adress of the new free blocks are correct. We also check that free list start is correct.
+    assert((void *)a + a->size + sizeof(struct mem_control_block)==free_list_start);
+    assert(b->size ==free_list_start->size);
+    assert((void *)c + c->size + sizeof(struct mem_control_block)==free_list_start->next);
+    assert(d->size == free_list_start->next->size);
+    printf("ASSERT TESTS SUCCESS - ALL FREED BLOCKS ARE ADDED TO FREE LIST AT CORRECT ADRESSES WITH CORRECT SIZE\n\n");
+
+
+    //Freeing mid to check that merging on both sides of block works
     myfree(c);
 
+    printf("FOURTH TEST: FREEING MID-BLOCK - CHECK WETHER FREE BLOCKS MERGED TOGETHER\n");
+    //We check that free blocks are merged together after removing c. This checks that c merges together with the free block in front and behind. 
+    assert(40+32+16+2*sizeof(struct mem_control_block) == free_list_start->size);
+    assert((void *)e + e->size + sizeof(struct mem_control_block)==free_list_start->next);
+    printf("ASSERT TEST SUCCESS - ALL FREE BLOCKS NEXT TO EACH OTHER ARE MERGED TOGETHER\n\n");
 
-    printf("Iterating through list of free blocks:\n");
+
+    printf("FIFTH TEST: ADDING BLOCK THAT FITS IN FREE BLOCK GAP AND BLOCK THAT DOES NOT FIT / ALSO CHECKS THAT NEW FREE BLOCK IS ADDED AT CORRECT ADDRESS WITH CORRECT SIZE\n");
+    //We check that we can add a suitable block to the free block gap, which also leaves a small free gap, which is to small for the next block of same size (and it therefore gets allocated in the back)
+    struct mem_control_block *f = mymalloc(96);
+    assert((void *)a + a->size + sizeof(struct mem_control_block)==f);
+
+    struct mem_control_block *g = mymalloc(96);
+    assert((void *)e + e->size + sizeof(struct mem_control_block)==g);
+
+    assert((void *)e + 16 + 72 + 16 + 96 == (void *)g+ sizeof(struct mem_control_block) +96);
+    assert(g->size ==96);
+    assert(free_list_start->next->size == MEM_SIZE - 376);
+    printf("ASSERT TEST SUCCESS - ALL BLOCKS ADDED AT CORRECT ADDRESS AND WITH CORRECT SIZE\n\n");
+
+    printf("SIXTH TEST: ENSURE THAT TOO BIG BLOCK DOESNT GET ALLOCATED \n");
+    //We check that the too big block doesnt get allocated by asserting that its adress is the mem_control_block NULL-value. 
+    struct mem_control_block *h = mymalloc(69420);
+    assert(h == (struct mem_control_block *)0);
+    printf("ASSERT TEST SUCCESS - TOO BIG BLOCK NOT ADDED\n\n");
+
+    //Iteration through free-list at the end to verify correctness
+    printf("\nIterating through list of free blocks:\n");
     struct mem_control_block *n = free_list_start;
     int i = 0;
     do {
