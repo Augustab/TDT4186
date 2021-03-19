@@ -5,6 +5,8 @@
 #include <limits.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #define MAX_INPUT_LEN 256 // Maximum input length + 2 (2 because of ending "\n" and \0)
 
@@ -21,7 +23,7 @@ int main() {
     int pid;
 
     while(1) { // TODO: find an exit condition for the loop
-        printf("wish:<%s>$ ", cwd);
+        printf("\033[1;31mwish:<%s>$ \033[0m", cwd);
         fgets(input, MAX_INPUT_LEN, stdin); // fgets returns 0 on error TODO: error handling
 
         char *command = strtok(input, delims);
@@ -39,8 +41,8 @@ int main() {
         }
 
         // Redirections
-        char *in_file;
-        char *out_file;
+        char *in_file = NULL;
+        char *out_file = NULL;
         int has_redirected_input = 0;
         int has_redirected_output = 0;
         if (param != NULL && strcmp(param, "<") == 0) {
@@ -82,10 +84,43 @@ int main() {
             }
             argv[i+1] = NULL;
 
+            
+            if (in_file != NULL) {
+                int input = open(in_file, O_RDONLY);
+                if (input == -1) {
+                    printf("Error: InputFile can not be read or doesn't exist\n");
+                    exit(EXIT_FAILURE);
+                }
+                else {
+                    //printf("HER ER INPUT\n");
+                    dup2(input, 0);
+                    close(input);
+                }
+            }
+            
+
+            if (out_file != NULL) {
+                //printf("INNE HER\n");
+                int output = open(out_file, O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR); // FLAGS FOUND HERE: http://www.cs.loyola.edu/~jglenn/702/S2005/Examples/dup2.html
+                printf("ERROR: %d", errno);
+                if (output == -1) {
+                    printf("ERROR: Outfile cannot be opened - Showing Result in shell instead\n");
+                    close(output);
+                }
+                else {
+                    //printf("HER ER OUTPUT\n");
+                    dup2(output, 1);
+                    close(output);
+                }
+            }
+
+
             if (execvp(command, argv) < 0) {
                 printf("An error has occured. Error type: %d\n", errno);
-            exit(0);
+            //Exit failure    
+            exit(EXIT_FAILURE);
             }
         }
     }
 }
+
