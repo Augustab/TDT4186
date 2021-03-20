@@ -1,7 +1,5 @@
 total 40
--rw-r----- 1 baflagen baflagen    35 Mar 20 15:59 abc
--rw-r----- 1 baflagen baflagen     0 Mar 20 16:33 ls.txt
--rw-r----- 1 baflagen baflagen    35 Mar 19 11:52 test
-drwxr-xr-x 2 baflagen baflagen  4096 Mar 20 16:22 tester
--rwxr-xr-x 1 baflagen baflagen 17448 Mar 20 16:32 wish
--rw-r--r-- 1 baflagen baflagen  4828 Mar 20 16:30 wish.c
+-rw-r----- 1 oskar oskar     0 Mar 20 18:02 ls.txt
+drwxr-xr-x 1 oskar oskar  4096 Mar 20 17:58 tester
+-rwxr-xr-x 1 oskar oskar 17616 Mar 20 18:02 wish
+-rw-r--r-- 1 oskar oskar  4607 Mar 20 17:55 wish.c
