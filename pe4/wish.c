@@ -86,7 +86,10 @@ int main() {
             printf("Exiting...\n");
             exit(EXIT_SUCCESS);
         }
-        
+        else if (strcmp(command, "wish")==0 || strcmp(command, "WISH")==0)
+        {
+            
+        }
         
         else 
         {
