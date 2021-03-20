@@ -1,0 +1,7 @@
+ls
+ls -l
+ls > ls.txt
+ls -l > ls.txt
+grep txt < ls.txt
+grep txt < ls.txt > grep.txt
+grep txt > grept.txt < ls.txt

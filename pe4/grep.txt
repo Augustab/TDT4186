@@ -1,0 +1,1 @@
+-rw-r----- 1 oskar oskar     0 Mar 20 18:02 ls.txt

@@ -1,0 +1,5 @@
+total 40
+-rw-r----- 1 oskar oskar     0 Mar 20 18:02 ls.txt
+drwxr-xr-x 1 oskar oskar  4096 Mar 20 17:58 tester
+-rwxr-xr-x 1 oskar oskar 17616 Mar 20 18:02 wish
+-rw-r--r-- 1 oskar oskar  4607 Mar 20 17:55 wish.c
