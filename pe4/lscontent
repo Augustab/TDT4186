@@ -1,0 +1,8 @@
+total 28
+-rw-r--r-- 1 augbir augbir    51 Mar 21 12:19 grep.txt
+-rw-r--r-- 1 augbir augbir    51 Mar 21 12:19 grept.txt
+-rw-r--r-- 1 augbir augbir   211 Mar 21 12:19 ls.txt
+-rw-r----- 1 augbir augbir     0 Mar 21 12:47 lscontent
+drwxr-xr-x 1 augbir augbir   512 Mar 21 12:19 tester
+-rwxr-xr-x 1 augbir augbir 17656 Mar 21 12:47 wish
+-rw-r--r-- 1 augbir augbir  4979 Mar 21 12:46 wish.c
