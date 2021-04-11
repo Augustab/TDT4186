@@ -5,15 +5,17 @@
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
-int received;
-int bandwith;
+long received = 0;
+long bandwith;
 
 void sig_handler(int signum){
-    static int timer;
-    timer += 1;
-    printf("Bandwidthmannen %d \n", bandwith);
+    printf("Bandwidth: %ld \n", bandwith);
     bandwith = 0;
     alarm(1);
+}
+
+void sigusr_handler(int signum){
+    printf("Current accumulated received bytes: %ld \n", received);
 }
 
 int run(int block_size){
@@ -26,7 +28,7 @@ int run(int block_size){
     memset(readbuffer, 'd', block_size-1);
     readbuffer[block_size] = '\0';
     signal(SIGALRM, sig_handler);
-
+    signal(SIGUSR1, sigusr_handler);
 
     if (pipe(fd) != 0){
         perror("PIPE");
@@ -43,7 +45,7 @@ int run(int block_size){
         close(fd[0]);
         int j = 0;
         //printf("len %ld \n", strlen(str) + 1);
-        while(j<2000000){
+        while(j<5000000){
             if (write(fd[1], str, (strlen(str) + 1)) == -1){
                 printf("Error %d", errno);
                 exit(1);
@@ -55,12 +57,12 @@ int run(int block_size){
     else
     {
         /* Parent process closes up output side of pipe */
+        printf("PARENTPROCESS PID %d \n", getpid());
         close(fd[1]);
-        received = 0;
         int i = 0;
         alarm(1); //first alarm
         //printf("len %ld \n", strlen(readbuffer) + 1);
-        while (i<2000000){
+        while (i<5000000){
             number_of_bytes = read(fd[0], readbuffer, strlen(readbuffer) + 1);
             if (number_of_bytes == -1) {
                 printf("Error %d", errno);     
@@ -78,5 +80,5 @@ int run(int block_size){
 
 
 int main(){
-    run(8193);
+    run(1000);
 }
