@@ -6,32 +6,24 @@
 #include <errno.h>
 #include <signal.h>
 #include <ctype.h>
-#include <time.h>
 
 long received = 0;
 long double bandwith;
 
-struct timespec start, stop;
 
 void sig_handler(int signum){
     // As it is called once every second, not nescessary for now to divide by elapsed time ( 1 sec ) - Might want to change this for higher accuracy/ error handling" 
-    int check = clock_gettime(CLOCK_MONOTONIC_RAW, &stop);
-    long double timedelta;
-
-    if ( check == -1) {
-        perror("Error with timing. Using standard time of 1 sec.");
-        timedelta = 1;
-    }
-    else {
-        timedelta = ( stop.tv_sec - start.tv_sec ) + ( stop.tv_nsec - start.tv_nsec )/1000000000 ;
-    }
+    
 
     printf("Bandwidth (B/s): %.0LF\n", bandwith);
     
     bandwith = 0;
-    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
     
     alarm(1);
+}
+
+void sigusr_handler(int signum){
+    printf("Current accumulated received bytes: %ld \n", received);
 }
 
 int run(int block_size){
@@ -44,6 +36,7 @@ int run(int block_size){
     memset(readbuffer, 'd', block_size-1);
     readbuffer[block_size] = '\0';
     signal(SIGALRM, sig_handler);
+    signal(SIGUSR1, sigusr_handler);
 
     if ( pipe(fd) != 0 ){
         perror( "Error creating pipe. " );
@@ -74,17 +67,14 @@ int run(int block_size){
         close( fd[1] );
         alarm( 1 ); //first alarm
         // Setting start timestamp
-        clock_gettime(CLOCK_MONOTONIC_RAW, &start);
         while ( 1 ){
             number_of_bytes = read( fd[0], readbuffer, strlen( readbuffer ) + 1 );
-            //printf("Number of b %d \n", number_of_bytes); //This reveals what the maximum packet-size is. 
             if ( number_of_bytes == -1 ) {
                 printf( "Error %d", errno );     
                 exit( EXIT_FAILURE );
             }
             received += number_of_bytes;
             bandwith += number_of_bytes;
-            //printf("Cummulative bytes is %d and string is %s \n", received, readbuffer);
         }
         exit( EXIT_SUCCESS );
     }

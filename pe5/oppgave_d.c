@@ -7,12 +7,19 @@
 #include <errno.h>
 #include <signal.h>
 #include <fcntl.h>
+#include <ctype.h>
+
 long received = 0;
-long bandwith;
+long double bandwith;
+
 
 void sig_handler(int signum){
-    printf("Bandwidth: %ld \n", bandwith);
+    // As it is called once every second, not nescessary for now to divide by elapsed time ( 1 sec ) - Might want to change this for higher accuracy/ error handling" 
+
+    printf("Bandwidth (B/s): %.0LF \n", bandwith);
+    
     bandwith = 0;
+    
     alarm(1);
 }
 
@@ -49,14 +56,11 @@ int run(int block_size){
     if(childpid == 0){
         /* Child process closes up input side of pipe */
         fd_child = open(named_pipe, O_WRONLY);
-        int j = 0;
-        //printf("len %ld \n", strlen(str) + 1);
-        while(j<300000){
+        while(1){
             if (write(fd_child, str, (strlen(str) + 1)) == -1){
                 printf("Error %d", errno);
                 exit(1);
             }
-            j += 1;
         }
         close(fd_child);
         exit(0);
@@ -66,18 +70,16 @@ int run(int block_size){
         /* Parent process closes up output side of pipe */
         printf("PARENTPROCESS PID %d \n", getpid());
         fd_parent = open(named_pipe, O_RDONLY);
-        int i = 0;
         alarm(1); //first alarm
-        //printf("len %ld \n", strlen(readbuffer) + 1);
-        while (i<300000){
+        while (1){
             number_of_bytes = read(fd_parent, readbuffer, strlen(readbuffer) + 1);
+            //printf("Number of bytes: %d \n", number_of_bytes);
             if (number_of_bytes == -1) {
                 printf("Error %d", errno);     
                 exit(1);
             }
             received += number_of_bytes;
             bandwith += number_of_bytes;
-            i += 1;
             //printf("Cummulative bytes is %d and string is %s \n", received, readbuffer);
         }
         close(fd_parent);
@@ -87,6 +89,35 @@ int run(int block_size){
 
 
 
-int main(){
-    run(100000);
+int main(int argc, char *argv[] ){
+    int block_size = 1000;
+
+    if (argc > 2) {
+        printf("Too many arguments. Program takes only one argument!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    else if ( argc < 2) {
+        printf("No argument given. Using standard block size of 1000 bytes.\n");
+    }
+    
+    else {
+        //Checking input    
+        int i = 0;
+        while( i < strlen( argv[1] )){
+            if (! isdigit( argv[1][i] ) ){
+                printf( "Argument must be a valid number!\n" );
+                exit( EXIT_FAILURE );
+            }
+            i++;
+        }
+        block_size = atoi( argv[1] );  
+    }
+
+    printf("___Benchmark___\n");
+    printf("Blocksize: %d\n\n", block_size);
+
+    fork();
+    fork();
+    run(block_size);
 }
