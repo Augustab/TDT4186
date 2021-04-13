@@ -9,7 +9,7 @@
 
 long received = 0;
 
-int run(int block_size){
+int run(size_t block_size){
     int fd[2], number_of_bytes;
     pid_t childpid;
     char *str = malloc(block_size);
@@ -63,7 +63,7 @@ int run(int block_size){
 
 int main( int argc, char *argv[] ) {
     
-    int block_size = 1000;
+    size_t block_size = 1000;
 
     if (argc > 2) {
         printf("Too many arguments. Program takes only one argument!\n");
@@ -84,11 +84,11 @@ int main( int argc, char *argv[] ) {
             }
             i++;
         }
-        block_size = atoi( argv[1] );  
+        block_size = strtoul( argv[1], NULL, 10 );  
     }
 
     printf("___Benchmark___\n");
-    printf("Blocksize: %d\n\n", block_size);
+    printf("Blocksize: %ld\n\n", block_size);
 
     run(block_size);
 }

@@ -27,7 +27,7 @@ void sigusr_handler(int signum){
     printf("Current accumulated received bytes: %ld \n", received);
 }
 
-int run(int block_size){
+int run(size_t block_size){
     int number_of_bytes, fd_child, fd_parent;
     char named_pipe[15];
     sprintf(named_pipe, "%d", getpid());
@@ -90,7 +90,8 @@ int run(int block_size){
 
 
 int main(int argc, char *argv[] ){
-    int block_size = 1000;
+
+    size_t block_size = 1000;
 
     if (argc > 2) {
         printf("Too many arguments. Program takes only one argument!\n");
@@ -111,13 +112,11 @@ int main(int argc, char *argv[] ){
             }
             i++;
         }
-        block_size = atoi( argv[1] );  
+        block_size = strtoul( argv[1], NULL, 10 );
     }
 
     printf("___Benchmark___\n");
-    printf("Blocksize: %d\n\n", block_size);
+    printf("Blocksize: %ld\n\n", block_size);
 
-    fork();
-    fork();
     run(block_size);
 }
