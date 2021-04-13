@@ -6,30 +6,17 @@
 #include <errno.h>
 #include <signal.h>
 #include <ctype.h>
-#include <time.h>
 
 long received = 0;
 long double bandwith;
 
-struct timespec start, stop;
 
 void sig_handler(int signum){
     // As it is called once every second, not nescessary for now to divide by elapsed time ( 1 sec ) - Might want to change this for higher accuracy/ error handling" 
-    int check = clock_gettime(CLOCK_MONOTONIC_RAW, &stop);
-    float timedelta;
 
-    if ( check == -1) {
-        perror("Error with timing. Using standard time of 1 sec.");
-        timedelta = 1;
-    }
-    else {
-        timedelta = ( stop.tv_sec - start.tv_sec ) + ( stop.tv_nsec - start.tv_nsec )/1000000000 ;
-    }
-
-    printf("Bandwidth (B/s): %LF | %f \n", bandwith, timedelta);
+    printf("Bandwidth (B/s): %LF | %f \n", bandwith);
     
     bandwith = 0;
-    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
     
     alarm(1);
 }
@@ -85,7 +72,6 @@ int run(int block_size){
         alarm( 1 ); //first alarm
         //printf("len %ld \n", strlen(readbuffer) + 1);
         // Setting start timestamp
-        clock_gettime(CLOCK_MONOTONIC_RAW, &start);
         while ( 1 ){
             number_of_bytes = read( fd[0], readbuffer, strlen( readbuffer ) + 1 );
             if ( number_of_bytes == -1 ) {
