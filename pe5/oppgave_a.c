@@ -10,29 +10,36 @@
 long received = 0;
 
 int run(size_t block_size){
+    // fd-array is used to initialize pipe
     int fd[2], number_of_bytes;
+    // Initializing pid
     pid_t childpid;
+    // Filling string of length block size with data
     char *str = malloc(block_size);
     memset(str, 'a', block_size-1);
     str[block_size] = '\0';
+    // Initializing readbuffer with data.
     char *readbuffer = malloc(block_size);
     memset(readbuffer, 'd', block_size-1);
     readbuffer[block_size] = '\0';
 
+    // Initializing pipe with error-handling.
     if ( pipe(fd) != 0 ){
         perror( "Error creating pipe. " );
         exit( EXIT_FAILURE );
     }
        
+    // Forking with error-handling.
     if( ( childpid = fork() ) == -1){
         perror( "Error during forking. " );
         exit( EXIT_FAILURE );
     }
 
     if( childpid == 0 ){
-        // Child process closes up input side of pipe s
+        // Child process closes up input side of pipe 
         close( fd[0] );
         while( 1 ){
+            // Writing content str to pipe with error handling for write-command.
             number_of_bytes = write( fd[1], str, ( strlen( str ) + 1 ));
             if ( number_of_bytes == -1 ) {
                 printf( "Error %d", errno );
@@ -47,6 +54,7 @@ int run(size_t block_size){
         printf( "PARENTPROCESS PID %d \n", getpid() );
         close( fd[1] );
         while ( 1 ){
+            // Reading content from pipe into readbuffer with error handling
             number_of_bytes = read( fd[0], readbuffer, strlen( readbuffer ) + 1 );
             if ( number_of_bytes == -1 ) {
                 printf( "Error %d", errno );     
@@ -60,9 +68,9 @@ int run(size_t block_size){
 }
 
 
-
+// Main takes block size as argument.
 int main( int argc, char *argv[] ) {
-    
+    // If no argument is given this is the standard size.
     size_t block_size = 1000;
 
     if (argc > 2) {
@@ -75,7 +83,7 @@ int main( int argc, char *argv[] ) {
     }
     
     else {
-        //Checking input    
+        //Checking that input is a valid number 
         int i = 0;
         while( i < strlen( argv[1] )){
             if (! isdigit( argv[1][i] ) ){
@@ -84,7 +92,7 @@ int main( int argc, char *argv[] ) {
             }
             i++;
         }
-        block_size = strtoul( argv[1], NULL, 10 );  
+        block_size = strtoul( argv[1], NULL, 10 );
     }
 
     printf("___Benchmark___\n");

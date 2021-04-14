@@ -9,46 +9,54 @@
 #include <time.h>
 
 long received = 0;
-long double bandwith;
+long bandwith;
 
 struct timespec start, stop;
 
 void sig_handler(int signum){
     // As it is called once every second, not nescessary for now to divide by elapsed time ( 1 sec ) - Might want to change this for higher accuracy/ error handling" 
 
-    printf("Bandwidth (B/s): %.0LF\n", bandwith);
+    printf("Bandwidth (B/s): %ld\n", bandwith);
     
     bandwith = 0;
-    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
     
+    // Setting new alarm in 1 second.
     alarm(1);
 }
 
 int run(size_t block_size){
+    // fd-array is used to initialize pipe
     int fd[2], number_of_bytes;
+    // Initializing pid
     pid_t childpid;
+    // Filling string of length block size with data
     char *str = malloc(block_size);
     memset(str, 'a', block_size-1);
     str[block_size] = '\0';
+    // Initializing readbuffer with data.
     char *readbuffer = malloc(block_size);
     memset(readbuffer, 'd', block_size-1);
     readbuffer[block_size] = '\0';
+    // Binding SIGALRM to the correct handler.
     signal(SIGALRM, sig_handler);
 
+    // Initializing pipe with error-handling.
     if ( pipe(fd) != 0 ){
         perror( "Error creating pipe. " );
         exit( EXIT_FAILURE );
     }
        
+    // Forking with error-handling.
     if( ( childpid = fork() ) == -1){
         perror( "Error during forking. " );
         exit( EXIT_FAILURE );
     }
 
     if( childpid == 0 ){
-        /* Child process closes up input side of pipe */
+        // Child process closes up input side of pipe 
         close( fd[0] );
         while( 1 ){
+            // Writing content str to pipe with error handling for write-command.
             number_of_bytes = write( fd[1], str, ( strlen( str ) + 1 ));
             if ( number_of_bytes == -1 ) {
                 printf( "Error %d", errno );
@@ -59,13 +67,12 @@ int run(size_t block_size){
     }
     else
     {
-        /* Parent process closes up output side of pipe */
+        // Parent process closes up output side of pipe 
         printf( "PARENTPROCESS PID %d \n", getpid() );
         close( fd[1] );
-        alarm( 1 ); //first alarm
-        // Setting start timestamp
-        clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+        alarm( 1 ); // Setting first alarm
         while ( 1 ){
+            // Reading content from pipe into readbuffer with error handling
             number_of_bytes = read( fd[0], readbuffer, strlen( readbuffer ) + 1 );
             //printf("Number of b %d \n", number_of_bytes); //This reveals what the maximum packet-size is. 
             if ( number_of_bytes == -1 ) {
@@ -81,9 +88,9 @@ int run(size_t block_size){
 }
 
 
-
+// Main takes block size as argument.
 int main( int argc, char *argv[] ) {
-    
+    // If no argument is given this is the standard size.
     size_t block_size = 1000;
 
     if (argc > 2) {
@@ -96,7 +103,7 @@ int main( int argc, char *argv[] ) {
     }
     
     else {
-        //Checking input    
+        //Checking that input is a valid number 
         int i = 0;
         while( i < strlen( argv[1] )){
             if (! isdigit( argv[1][i] ) ){
